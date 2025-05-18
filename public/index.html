@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assets Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fb;
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: 15px 25px;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-selector {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #currentView {
+      font-weight: 600;
+      font-size: 16px;
+      color: #333;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .viewer {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000;
+    }
+
+    #fileDisplay, #pdfViewer, #imageViewer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border: none;
+      display: none;
+    }
+
+    .message {
+      color: #fff;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+
+    .file-list-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 30px;
+      overflow-y: auto;
+      background-color: #f8f9fb;
+      flex: 1;
+      align-content: flex-start;
+    }
+
+    .file-item {
+      width: 160px;
+      height: 190px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .file-item:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+
+    .file-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .file-icon.pdf {
+      color: #e74c3c;
+    }
+
+    .file-icon.image {
+      color: #3498db;
+    }
+
+    .file-name {
+      font-size: 14px;
+      word-break: break-word;
+      color: #444;
+    }
+
+    @media (max-width: 600px) {
+      .file-item {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        gap: 10px;
+        padding: 15px;
+      }
+      .file-icon {
+        font-size: 36px;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="file-selector">
+        <span id="currentView">Select a file to view</span>
+        <button id="backToFilesBtn" style="display: none;">⬅ Back</button>
+      </div>
+      <button id="fullscreenBtn">⛶ Fullscreen</button>
+    </div>
+
+    <div id="fileListView" class="file-list-container">
+      <p class="message">Loading files from assets folder...</p>
+    </div>
+
+    <div class="viewer" id="viewerContainer" style="display: none;">
+      <p class="message" id="initialMessage">Select a file to view</p>
+      <embed id="pdfViewer" type="application/pdf" src="">
+      <img id="imageViewer" src="" alt="Asset preview">
+    </div>
+  </div>
+
+  <script>
+    const assetsFiles = [
+      { name: 'Automation Developer Associate Training (v2023.10) for ICT Academy_HARISH .m_en-US_diploma.pdf', type: 'pdf' },
+      { name: 'mathwork-certificate.pdf', type: 'pdf' },
+      { name: 'mongodb-certificate.pdf', type: 'pdf' },
+      { name: 'mongodb-certificate1.pdf', type: 'pdf' },
+      { name: 'mongodb-certificate2.pdf', type: 'pdf' },
+      { name: 'uipathLearningPath-certificate.pdf', type: 'pdf' },
+      { name: 'vmware-certificate.jpg', type: 'image' },
+    ];
+
+    const fileListView = document.getElementById('fileListView');
+    const viewerContainer = document.getElementById('viewerContainer');
+    const pdfViewer = document.getElementById('pdfViewer');
+    const imageViewer = document.getElementById('imageViewer');
+    const initialMessage = document.getElementById('initialMessage');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const backToFilesBtn = document.getElementById('backToFilesBtn');
+    const currentView = document.getElementById('currentView');
+
+    function displayFileList() {
+      fileListView.innerHTML = '';
+
+      if (assetsFiles.length === 0) {
+        fileListView.innerHTML = '<p class="message">No files found in assets folder</p>';
+        return;
+      }
+
+      assetsFiles.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.onclick = () => openFile(file.name);
+
+        const icon = file.type === 'pdf' ? '📄' : '🖼️';
+        const iconClass = file.type === 'pdf' ? 'pdf' : 'image';
+
+        fileItem.innerHTML = `
+          <div class="file-icon ${iconClass}">${icon}</div>
+          <div class="file-name">${file.name}</div>
+        `;
+
+        fileListView.appendChild(fileItem);
+      });
+    }
+
+    function openFile(fileName) {
+      const filePath = `assets/${fileName}`;
+      const fileExtension = fileName.split('.').pop().toLowerCase();
+      const isPDF = fileExtension === 'pdf';
+      const isImage = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'].includes(fileExtension);
+
+      fileListView.style.display = 'none';
+      viewerContainer.style.display = 'flex';
+      backToFilesBtn.style.display = 'inline-block';
+      currentView.textContent = `Viewing: ${fileName}`;
+      initialMessage.style.display = 'none';
+
+      if (isImage) {
+        pdfViewer.style.display = 'none';
+        imageViewer.style.display = 'block';
+        imageViewer.src = filePath;
+      } else if (isPDF) {
+        imageViewer.style.display = 'none';
+        pdfViewer.style.display = 'block';
+        pdfViewer.src = filePath;
+      } else {
+        initialMessage.textContent = 'Unsupported file type.';
+        initialMessage.style.display = 'block';
+      }
+    }
+
+    imageViewer.addEventListener('error', function() {
+      const fileName = imageViewer.src.split('/').pop();
+      initialMessage.textContent = `Error loading image: ${fileName}`;
+      initialMessage.style.display = 'block';
+      imageViewer.style.display = 'none';
+    });
+
+    backToFilesBtn.addEventListener('click', function() {
+      viewerContainer.style.display = 'none';
+      fileListView.style.display = 'flex';
+      backToFilesBtn.style.display = 'none';
+      currentView.textContent = 'Select a file to view';
+      pdfViewer.src = '';
+      imageViewer.src = '';
+    });
+
+    fullscreenBtn.addEventListener('click', function() {
+      const target = viewerContainer.style.display === 'none' ? fileListView : viewerContainer;
+
+      if (target.requestFullscreen) target.requestFullscreen();
+      else if (target.webkitRequestFullscreen) target.webkitRequestFullscreen();
+      else if (target.msRequestFullscreen) target.msRequestFullscreen();
+    });
+
+    displayFileList();
+  </script>
+</body>
+</html>
