@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vercel App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Hello, Vercel!</h1>
+  <button id="call-api">Call Backend API</button>
+  <p id="response"></p>
+  <a href="/example.pdf" target="_blank">Download PDF</a>
+
+  <script>
+    document.getElementById("call-api").onclick = async () => {
+      const res = await fetch("/api/hello");
+      const data = await res.json();
+      document.getElementById("response").innerText = data.message;
+    };
+  </script>
+</body>
+</html>
